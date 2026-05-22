@@ -2,7 +2,7 @@ use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
 
-use crate::tetromino::Cell; 
+use crate::tetromino::{self, Tetromino, TypeTetromino};
 
 struct Playfield {
     width: u32,
@@ -27,6 +27,24 @@ pub struct Game {
     playfield_mtrx: Vec<Vec<Cell>>,
     score: u32,
     state: State,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Cell {
+    Empty,
+    Taken(TypeTetromino),
+}
+
+impl Cell {
+    pub fn draw(&self) {
+        //print!("█▓▒");
+        match self {
+            Cell::Empty => print!("[ ]"),
+            Cell::Taken(t) => match t {
+                _ => print!("[■]"),
+            },
+        }
+    }
 }
 
 impl Game {
@@ -57,7 +75,8 @@ impl Game {
 
         print!("╔");
         for _ in 0..width {
-            print!("═══"); 
+            print!("═══");
+        }
         println!("╗");
 
         for row in &self.playfield_mtrx {
@@ -75,6 +94,11 @@ impl Game {
         thread::sleep(Duration::from_secs(1));
     }
 
+    pub fn update(&mut self) {
+        let p = Tetromino::new(tetromino::TypeTetromino::O);
+        self.place_piece(&p);
+    }
+
     fn clear_screen() {
         // \x1B[2J clean screen
         // \x1B[1;1H set the cursor to the start of the screen
@@ -83,5 +107,25 @@ impl Game {
         io::stdout().flush().unwrap();
     }
 
-    pub fn update(&self) {}
+    pub fn place_piece(&mut self, piece: &Tetromino) {
+        // Iterate through the 4 relative points of the tetromino shape
+        for (offset_x, offset_y) in piece.shape() {
+            // Calculate absolute coordinates on the board
+            let abs_x = piece.x + offset_x;
+            let abs_y = piece.y + offset_y;
+
+            // Ensure the piece is within the matrix limits
+            if abs_x >= 0
+                && abs_x < self.board.width as i32
+                && abs_y >= 0
+                && abs_y < self.board.height as i32
+            {
+                let x_idx = abs_x as usize;
+                let y_idx = abs_y as usize;
+
+                // Update the cell
+                self.playfield_mtrx[y_idx][x_idx] = Cell::Taken(piece.t_type);
+            }
+        }
+    }
 }
