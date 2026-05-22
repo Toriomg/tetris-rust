@@ -1,4 +1,4 @@
-//use rand::Rng;
+use rand::Rng;
 
 #[derive(Debug, Clone, Copy)]
 pub enum TypeTetromino {
@@ -11,6 +11,24 @@ pub enum TypeTetromino {
     L,
 }
 
+impl TypeTetromino {
+    /**
+     *  Returns a random tetromino type
+     */
+    pub fn random() -> Self {
+        let mut rng = rand::thread_rng();
+        match rng.gen_range(0..7) {
+            0 => Self::I,
+            1 => Self::O,
+            2 => Self::T,
+            3 => Self::S,
+            4 => Self::Z,
+            5 => Self::J,
+            _ => Self::L, // Default case for safety
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Tetromino {
     pub t_type: TypeTetromino,
@@ -20,9 +38,10 @@ pub struct Tetromino {
 
 impl Tetromino {
     pub fn new(t_type: TypeTetromino) -> Self {
-        Self { t_type, x: 5, y: 4 }
+        Self { t_type, x: 5, y: 7 }
     }
     pub fn shape(&self) -> [(i32, i32); 4] {
+        // By the coordinates place the shape of the piece
         match self.t_type {
             TypeTetromino::I => [(0, -1), (0, 0), (0, 1), (0, 2)],
             TypeTetromino::O => [(0, 0), (1, 0), (0, 1), (1, 1)],

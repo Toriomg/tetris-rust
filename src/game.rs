@@ -49,8 +49,8 @@ impl Cell {
                     TypeTetromino::J => "\x1b[34m", // Blue
                     TypeTetromino::L => "\x1b[37m", // White (or use \x1b[38;5;208m for Orange)
                 };
+                // Reset the color
                 let reset = "\x1b[0m";
-                // Print the colored block
                 print!("{}[■]{}", color, reset);
             }
         }
@@ -105,7 +105,8 @@ impl Game {
     }
 
     pub fn update(&mut self) {
-        let p = Tetromino::new(tetromino::TypeTetromino::J);
+        let random_type = TypeTetromino::random();
+        let p = Tetromino::new(random_type);
         self.place_piece(&p);
     }
 
