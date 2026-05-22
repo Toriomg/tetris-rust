@@ -37,12 +37,22 @@ enum Cell {
 
 impl Cell {
     pub fn draw(&self) {
-        //print!("█▓▒");
         match self {
             Cell::Empty => print!("[ ]"),
-            Cell::Taken(t) => match t {
-                _ => print!("[■]"),
-            },
+            Cell::Taken(t_type) => {
+                let color = match t_type {
+                    TypeTetromino::I => "\x1b[36m", // Cyan
+                    TypeTetromino::O => "\x1b[33m", // Yellow
+                    TypeTetromino::T => "\x1b[35m", // Magenta
+                    TypeTetromino::S => "\x1b[32m", // Green
+                    TypeTetromino::Z => "\x1b[31m", // Red
+                    TypeTetromino::J => "\x1b[34m", // Blue
+                    TypeTetromino::L => "\x1b[37m", // White (or use \x1b[38;5;208m for Orange)
+                };
+                let reset = "\x1b[0m";
+                // Print the colored block
+                print!("{}[■]{}", color, reset);
+            }
         }
     }
 }
@@ -95,7 +105,7 @@ impl Game {
     }
 
     pub fn update(&mut self) {
-        let p = Tetromino::new(tetromino::TypeTetromino::O);
+        let p = Tetromino::new(tetromino::TypeTetromino::J);
         self.place_piece(&p);
     }
 
