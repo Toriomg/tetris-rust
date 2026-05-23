@@ -8,12 +8,13 @@ struct Playfield {
 }
 
 #[derive(PartialEq)]
-enum Actions {
+pub enum Actions {
     Still,
     Right,
     Left,
     Down,
     Rotate,
+    Quit,
 }
 
 impl Actions {
@@ -24,9 +25,9 @@ impl Actions {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..5) {
             0 => Self::Still,
-            //1 => Self::Right,
-            //2 => Self::Left,
-            //3 => Self::Down,
+            1 => Self::Right,
+            2 => Self::Left,
+            3 => Self::Down,
             4 => Self::Rotate,
             _ => Self::Still, // Default case for safety
         }
@@ -91,7 +92,7 @@ impl Game {
             current_piece: Tetromino::new(random_type, width),
         };
         if cfg!(debug_assertions) {
-            println!("Tablero inicializado");
+            crate::println_raw!("Tablero inicializado");
         }
         g
     }
@@ -110,7 +111,7 @@ impl Game {
         for _ in 0..width * 3 - message.len() {
             print!("═");
         }
-        println!("╗");
+        crate::println_raw!("╗");
 
         for (y, row) in self.playfield_mtrx.iter().enumerate() {
             print!("║");
@@ -130,7 +131,7 @@ impl Game {
                     cell.draw();
                 }
             }
-            println!("║");
+            crate::println_raw!("║");
         }
         print!("╚");
         let message = format!("Score: {}", self.score);
@@ -138,7 +139,7 @@ impl Game {
             print!("═");
         }
         print!("{message}");
-        println!("╝");
+        crate::println_raw!("╝");
     }
 
     fn spawn_piece(&mut self) {
@@ -155,8 +156,6 @@ impl Game {
         match self.state {
             State::Playing => {
                 self.move_piece(Actions::Down);
-                let random_movement = Actions::random();
-                self.move_piece(random_movement);
             }
             State::GameOver => {
                 std::process::exit(0);
@@ -205,7 +204,7 @@ impl Game {
         true
     }
 
-    fn move_piece(&mut self, action: Actions) {
+    pub fn move_piece(&mut self, action: Actions) {
         // copy of the piece in the future
         let mut next_piece = self.current_piece;
 
