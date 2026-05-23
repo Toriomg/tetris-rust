@@ -38,12 +38,16 @@ pub struct Tetromino {
 
 impl Tetromino {
     pub fn new(t_type: TypeTetromino, playfield_width: u32) -> Self {
-        Self { t_type, x: (playfield_width as i32)/2, y: 1 }
+        Self {
+            t_type,
+            x: (playfield_width as i32) / 2 - 1, // Minus 1 as it starts in 0
+            y: 1,
+        }
     }
     pub fn shape(&self) -> [(i32, i32); 4] {
         // By the coordinates place the shape of the piece
         match self.t_type {
-            TypeTetromino::I => [(0, -1), (0, 0), (0, 1), (0, 2)],
+            TypeTetromino::I => [(-1, 0), (0, 0), (1, 0), (2, 0)],
             TypeTetromino::O => [(0, 0), (1, 0), (0, 1), (1, 1)],
             TypeTetromino::T => [(-1, 0), (0, 0), (1, 0), (0, 1)],
             TypeTetromino::S => [(0, 0), (1, 0), (-1, 1), (0, 1)],

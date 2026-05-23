@@ -1,6 +1,6 @@
-use std::io::{self, Write};
-
 use crate::tetromino::{self, Tetromino, TypeTetromino};
+use rand::Rng;
+use std::io::{self, Write};
 
 struct Playfield {
     width: u32,
@@ -13,6 +13,23 @@ enum Actions {
     Left,
     Down,
     Rotate,
+}
+
+impl Actions {
+    /**
+     *  Returns a random tetromino type
+     */
+    fn random() -> Self {
+        let mut rng = rand::thread_rng();
+        match rng.gen_range(0..5) {
+            0 => Self::Still,
+            1 => Self::Right,
+            2 => Self::Left,
+            //3 => Self::Down,
+            4 => Self::Rotate,
+            _ => Self::Still, // Default case for safety
+        }
+    }
 }
 
 enum State {
@@ -119,22 +136,27 @@ impl Game {
         println!("╝");
     }
 
+    fn spawn_piece(&mut self) {
+        let random_type = TypeTetromino::random();
+        self.current_piece = Tetromino::new(random_type, self.board.width);
+
+        // if its colliding its game over
+        if !self.is_valid_move(self.current_piece.x, self.current_piece.y) {
+            self.state = State::GameOver;
+        }
+    }
+
     pub fn update(&mut self) {
-        // gravity move
-        if self.is_valid_move(self.current_piece.x, self.current_piece.y + 1) {
-            self.current_piece.y += 1;
-        } else {
-            // cannot move more and generate new piece
-            self.place_piece();
-
-            // spawn new piece
-            let random_type = TypeTetromino::random();
-            self.current_piece = Tetromino::new(random_type, self.board.width);
-
-            // if its colliding its game over
-            if !self.is_valid_move(self.current_piece.x, self.current_piece.y) {
-                self.state = State::GameOver;
+        match self.state {
+            State::Playing => {
+                self.move_piece(Actions::Down);
+                let random_movement = Actions::random();
+                self.move_piece(random_movement);
             }
+            State::GameOver => {
+                std::process::exit(0);
+            }
+            _ => (),
         }
     }
 
@@ -196,6 +218,7 @@ impl Game {
                 } else {
                     // piece placed if cannot move more
                     self.place_piece();
+                    self.spawn_piece();
                 }
             }
             _ => (),
@@ -220,6 +243,30 @@ impl Game {
 
                 // Update cell
                 self.playfield_mtrx[y_idx][x_idx] = Cell::Taken(self.current_piece.t_type);
+            }
+        }
+        self.clear_lines();
+    }
+
+    fn clear_lines(&mut self) {
+        // safe height for late check then
+        let old_height = self.playfield_mtrx.len();
+
+        // clean non full lines
+        self.playfield_mtrx
+            .retain(|row| row.iter().any(|cell| matches!(cell, Cell::Empty)));
+
+        let deleted_count = old_height - self.playfield_mtrx.len();
+
+        if deleted_count > 0 {
+            // Add score
+            self.score += deleted_count as u32 * 100;
+
+            for _ in 0..deleted_count {
+                // New rows
+                let new_row = vec![Cell::Empty; self.board.width as usize];
+                // inserted into the start
+                self.playfield_mtrx.insert(0, new_row);
             }
         }
     }

@@ -3,7 +3,7 @@ mod tetromino;
 use game::Game;
 
 fn main() {
-    let mut game = Game::new(10, 18);
+    let mut game = Game::new(10, 22);
     loop {
         game.update();
         game.draw();
