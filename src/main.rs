@@ -28,7 +28,6 @@ fn main() {
         game.draw();
         if game.is_game_over() {
             println!("   GAME OVER - Score: {}   ", game.score);
-            std::thread::sleep(Duration::from_secs(2)); 
             break; 
         }
         std::thread::sleep(std::time::Duration::from_millis(5));
