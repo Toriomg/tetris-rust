@@ -37,8 +37,8 @@ pub struct Tetromino {
 }
 
 impl Tetromino {
-    pub fn new(t_type: TypeTetromino) -> Self {
-        Self { t_type, x: 5, y: 7 }
+    pub fn new(t_type: TypeTetromino, playfield_width: u32) -> Self {
+        Self { t_type, x: (playfield_width as i32)/2, y: 1 }
     }
     pub fn shape(&self) -> [(i32, i32); 4] {
         // By the coordinates place the shape of the piece

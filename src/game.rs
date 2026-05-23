@@ -1,6 +1,4 @@
 use std::io::{self, Write};
-use std::thread;
-use std::time::Duration;
 
 use crate::tetromino::{self, Tetromino, TypeTetromino};
 
@@ -10,6 +8,7 @@ struct Playfield {
 }
 
 enum Actions {
+    Still,
     Right,
     Left,
     Down,
@@ -27,6 +26,7 @@ pub struct Game {
     playfield_mtrx: Vec<Vec<Cell>>,
     score: u32,
     state: State,
+    current_piece: Tetromino,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -38,7 +38,7 @@ enum Cell {
 impl Cell {
     pub fn draw(&self) {
         match self {
-            Cell::Empty => print!("[ ]"),
+            Cell::Empty => print!("   "),
             Cell::Taken(t_type) => {
                 let color = match t_type {
                     TypeTetromino::I => "\x1b[36m", // Cyan
@@ -52,6 +52,7 @@ impl Cell {
                 // Reset the color
                 let reset = "\x1b[0m";
                 print!("{}[■]{}", color, reset);
+                //print!("{} █ {}", color, reset);
             }
         }
     }
@@ -60,6 +61,7 @@ impl Cell {
 impl Game {
     pub fn new(width: u32, height: u32) -> Self {
         let mtx = vec![vec![Cell::Empty; width as usize]; height as usize];
+        let random_type = TypeTetromino::random();
         let g = Self {
             board: Playfield {
                 width: width,
@@ -68,6 +70,7 @@ impl Game {
             score: 0,
             playfield_mtrx: mtx,
             state: State::Playing,
+            current_piece: Tetromino::new(random_type, width),
         };
         if cfg!(debug_assertions) {
             println!("Tablero inicializado");
@@ -80,7 +83,7 @@ impl Game {
         let height = self.playfield_mtrx.len();
         if height == 0 {
             return;
-        } // Seguridad
+        }
         let width = self.playfield_mtrx[0].len();
 
         print!("╔");
@@ -89,10 +92,23 @@ impl Game {
         }
         println!("╗");
 
-        for row in &self.playfield_mtrx {
+        for (y, row) in self.playfield_mtrx.iter().enumerate() {
             print!("║");
-            for cell in row {
-                cell.draw()
+            for (x, cell) in row.iter().enumerate() {
+                let mut is_piece_part = false;
+                for (offset_x, offset_y) in self.current_piece.shape() {
+                    if self.current_piece.x + offset_x == x as i32
+                        && self.current_piece.y + offset_y == y as i32
+                    {
+                        is_piece_part = true;
+                        break;
+                    }
+                }
+                if is_piece_part {
+                    Cell::Taken(self.current_piece.t_type).draw();
+                } else {
+                    cell.draw();
+                }
             }
             println!("║");
         }
@@ -101,13 +117,25 @@ impl Game {
             print!("═══");
         }
         println!("╝");
-        thread::sleep(Duration::from_secs(1));
     }
 
     pub fn update(&mut self) {
-        let random_type = TypeTetromino::random();
-        let p = Tetromino::new(random_type);
-        self.place_piece(&p);
+        // gravity move
+        if self.is_valid_move(self.current_piece.x, self.current_piece.y + 1) {
+            self.current_piece.y += 1;
+        } else {
+            // cannot move more and generate new piece
+            self.place_piece();
+
+            // spawn new piece
+            let random_type = TypeTetromino::random();
+            self.current_piece = Tetromino::new(random_type, self.board.width);
+
+            // if its colliding its game over
+            if !self.is_valid_move(self.current_piece.x, self.current_piece.y) {
+                self.state = State::GameOver;
+            }
+        }
     }
 
     fn clear_screen() {
@@ -118,14 +146,70 @@ impl Game {
         io::stdout().flush().unwrap();
     }
 
-    pub fn place_piece(&mut self, piece: &Tetromino) {
-        // Iterate through the 4 relative points of the tetromino shape
-        for (offset_x, offset_y) in piece.shape() {
-            // Calculate absolute coordinates on the board
-            let abs_x = piece.x + offset_x;
-            let abs_y = piece.y + offset_y;
+    // Checks wheter a piece can move
+    fn is_valid_move(&self, piece_x: i32, piece_y: i32) -> bool {
+        for (offset_x, offset_y) in self.current_piece.shape() {
+            let abs_x = piece_x + offset_x;
+            let abs_y = piece_y + offset_y;
 
-            // Ensure the piece is within the matrix limits
+            // lat left
+            if abs_x < 0 {
+                return false;
+            }
+
+            // lat right
+            if abs_x >= self.board.width as i32 {
+                return false;
+            }
+
+            // floor
+            if abs_y >= self.board.height as i32 {
+                return false;
+            }
+
+            // check collision
+            if abs_y >= 0 {
+                // check inside the matrix
+                if let Cell::Taken(_) = self.playfield_mtrx[abs_y as usize][abs_x as usize] {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn move_piece(&mut self, action: Actions) {
+        match action {
+            Actions::Left => {
+                if self.is_valid_move(self.current_piece.x - 1, self.current_piece.y) {
+                    self.current_piece.x -= 1;
+                }
+            }
+            Actions::Right => {
+                if self.is_valid_move(self.current_piece.x + 1, self.current_piece.y) {
+                    self.current_piece.x += 1;
+                }
+            }
+            Actions::Down => {
+                if self.is_valid_move(self.current_piece.x, self.current_piece.y + 1) {
+                    self.current_piece.y += 1;
+                } else {
+                    // piece placed if cannot move more
+                    self.place_piece();
+                }
+            }
+            _ => (),
+        }
+    }
+
+    fn place_piece(&mut self) {
+        // Iterate through the 4 relative points of tetromino shape
+        for (offset_x, offset_y) in self.current_piece.shape() {
+            // Calculate absolute coordinates on board
+            let abs_x = self.current_piece.x + offset_x;
+            let abs_y = self.current_piece.y + offset_y;
+
+            // Ensure piece is within the matrix limits
             if abs_x >= 0
                 && abs_x < self.board.width as i32
                 && abs_y >= 0
@@ -134,8 +218,8 @@ impl Game {
                 let x_idx = abs_x as usize;
                 let y_idx = abs_y as usize;
 
-                // Update the cell
-                self.playfield_mtrx[y_idx][x_idx] = Cell::Taken(piece.t_type);
+                // Update cell
+                self.playfield_mtrx[y_idx][x_idx] = Cell::Taken(self.current_piece.t_type);
             }
         }
     }
