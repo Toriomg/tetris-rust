@@ -34,18 +34,20 @@ impl Actions {
     }
 }
 
+#[derive(PartialEq)]
 enum State {
     Playing,
     Paused,
     GameOver,
+    Spawning(u32),
 }
 
 pub struct Game {
     board: Playfield,
     playfield_mtrx: Vec<Vec<Cell>>,
-    score: u32,
-    state: State,
-    current_piece: Tetromino,
+    pub score: u32,
+    pub state: State,
+    current_piece: Option<Tetromino>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -80,7 +82,6 @@ impl Cell {
 impl Game {
     pub fn new(width: u32, height: u32) -> Self {
         let mtx = vec![vec![Cell::Empty; width as usize]; height as usize];
-        let random_type = TypeTetromino::random();
         let g = Self {
             board: Playfield {
                 width: width,
@@ -89,7 +90,7 @@ impl Game {
             score: 0,
             playfield_mtrx: mtx,
             state: State::Playing,
-            current_piece: Tetromino::new(random_type, width),
+            current_piece: Some(Tetromino::new(TypeTetromino::random(), width)),
         };
         if cfg!(debug_assertions) {
             crate::println_raw!("Tablero inicializado");
@@ -117,16 +118,18 @@ impl Game {
             print!("║");
             for (x, cell) in row.iter().enumerate() {
                 let mut is_piece_part = false;
-                for (offset_x, offset_y) in self.current_piece.shape() {
-                    if self.current_piece.x + offset_x == x as i32
-                        && self.current_piece.y + offset_y == y as i32
-                    {
-                        is_piece_part = true;
-                        break;
+                if self.state == State::Playing {
+                    if let Some(piece) = &self.current_piece {
+                        for (offset_x, offset_y) in piece.shape() {
+                            if piece.x + offset_x == x as i32 && piece.y + offset_y == y as i32 {
+                                is_piece_part = true;
+                                break;
+                            }
+                        }
                     }
                 }
                 if is_piece_part {
-                    Cell::Taken(self.current_piece.t_type).draw();
+                    Cell::Taken(self.current_piece.as_ref().unwrap().t_type).draw();
                 } else {
                     cell.draw();
                 }
@@ -144,11 +147,13 @@ impl Game {
 
     fn spawn_piece(&mut self) {
         let random_type = TypeTetromino::random();
-        self.current_piece = Tetromino::new(random_type, self.board.width);
+        let new_piece = Tetromino::new(random_type, self.board.width);
 
         // if its colliding its game over
-        if !self.is_valid_move(&self.current_piece) {
+        if !self.is_valid_move(&new_piece) {
             self.state = State::GameOver;
+        } else {
+            self.current_piece = Some(new_piece);
         }
     }
 
@@ -157,11 +162,22 @@ impl Game {
             State::Playing => {
                 self.move_piece(Actions::Down);
             }
-            State::GameOver => {
-                std::process::exit(0);
+            State::Spawning(count) => {
+                if count > 0 {
+                    // Cecrement spawning counter
+                    self.state = State::Spawning(count - 1);
+                } else {
+                    // New piece
+                    self.state = State::Playing;
+                    self.spawn_piece();
+                }
             }
             _ => (),
         }
+    }
+
+    pub fn is_game_over(&self) -> bool {
+        return matches!(self.state, State::GameOver)
     }
 
     fn clear_screen() {
@@ -206,7 +222,9 @@ impl Game {
 
     pub fn move_piece(&mut self, action: Actions) {
         // copy of the piece in the future
-        let mut next_piece = self.current_piece;
+        let Some(mut next_piece) = self.current_piece else {
+            return;
+        };
 
         match action {
             Actions::Left => next_piece.x -= 1,
@@ -218,32 +236,34 @@ impl Game {
 
         if self.is_valid_move(&next_piece) {
             // if its valid change the piece
-            self.current_piece = next_piece;
+            self.current_piece = Some(next_piece);
         } else if action == Actions::Down {
             // If cannot descend more then new piece
             self.place_piece();
-            self.spawn_piece();
+            self.state = State::Spawning(1);
         }
     }
 
     fn place_piece(&mut self) {
         // Iterate through the 4 relative points of tetromino shape
-        for (offset_x, offset_y) in self.current_piece.shape() {
-            // Calculate absolute coordinates on board
-            let abs_x = self.current_piece.x + offset_x;
-            let abs_y = self.current_piece.y + offset_y;
+        if let Some(piece) = self.current_piece.take() {
+            for (offset_x, offset_y) in piece.shape() {
+                // Calculate absolute coordinates on board
+                let abs_x = piece.x + offset_x;
+                let abs_y = piece.y + offset_y;
 
-            // Ensure piece is within the matrix limits
-            if abs_x >= 0
-                && abs_x < self.board.width as i32
-                && abs_y >= 0
-                && abs_y < self.board.height as i32
-            {
-                let x_idx = abs_x as usize;
-                let y_idx = abs_y as usize;
+                // Ensure piece is within the matrix limits
+                if abs_x >= 0
+                    && abs_x < self.board.width as i32
+                    && abs_y >= 0
+                    && abs_y < self.board.height as i32
+                {
+                    let x_idx = abs_x as usize;
+                    let y_idx = abs_y as usize;
 
-                // Update cell
-                self.playfield_mtrx[y_idx][x_idx] = Cell::Taken(self.current_piece.t_type);
+                    // Update cell
+                    self.playfield_mtrx[y_idx][x_idx] = Cell::Taken(piece.t_type);
+                }
             }
         }
         self.score += 4;
