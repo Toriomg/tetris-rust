@@ -2,13 +2,14 @@ mod game;
 mod input;
 mod tetromino;
 mod utils;
+mod cell;
 use game::Game;
 
 use std::time::{Duration, Instant};
 
 fn main() {
     input::init_terminal();
-    let mut game = Game::new(10, 22);
+    let mut game = Game::new(10, 18);
     let mut last_drop = Instant::now();
     let drop_interval = Duration::from_millis(150);
     loop {

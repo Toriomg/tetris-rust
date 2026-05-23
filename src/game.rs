@@ -1,6 +1,6 @@
-use crate::tetromino::{self, Tetromino, TypeTetromino};
+use crate::tetromino::{ Tetromino, TypeTetromino};
 use rand::Rng;
-use std::io::{self, Write};
+use crate::cell::{Cell};
 
 struct Playfield {
     width: u32,
@@ -21,7 +21,7 @@ impl Actions {
     /**
      *  Returns a random tetromino type
      */
-    fn random() -> Self {
+    fn _random() -> Self {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..5) {
             0 => Self::Still,
@@ -50,37 +50,6 @@ pub struct Game {
     current_piece: Option<Tetromino>,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum Cell {
-    Empty,
-    Taken(TypeTetromino),
-    Clearing,
-}
-
-impl Cell {
-    pub fn draw(&self) {
-        match self {
-            Cell::Empty => print!("   "),
-            Cell::Clearing => print!("\x1b[47m   \x1b[0m"),
-            Cell::Taken(t_type) => {
-                let color = match t_type {
-                    TypeTetromino::I => "\x1b[36m", // Cyan
-                    TypeTetromino::O => "\x1b[33m", // Yellow
-                    TypeTetromino::T => "\x1b[34m", // Magenta
-                    TypeTetromino::S => "\x1b[32m", // Green
-                    TypeTetromino::Z => "\x1b[37m", // Red
-                    TypeTetromino::J => "\x1b[35m", // Blue
-                    TypeTetromino::L => "\x1b[31m", // White (or use \x1b[38;5;208m for Orange)
-                };
-                // Reset the color
-                let reset = "\x1b[0m";
-                //print!("{}[■]{}", color, reset);
-                print!("{}███{}", color, reset);
-            }
-        }
-    }
-}
-
 impl Game {
     pub fn new(width: u32, height: u32) -> Self {
         let mtx = vec![vec![Cell::Empty; width as usize]; height as usize];
@@ -101,7 +70,7 @@ impl Game {
     }
 
     pub fn draw(&self) {
-        Self::clear_screen();
+        crate::utils::clear_screen();
         let height = self.playfield_mtrx.len();
         if height == 0 {
             return;
@@ -111,7 +80,7 @@ impl Game {
         print!("╔");
         let message = "GB Tetris";
         print!("{message}");
-        for _ in 0..width * 3 - message.len() {
+        for _ in 0..width * 2 - message.len() {
             print!("═");
         }
         crate::println_raw!("╗");
@@ -140,7 +109,7 @@ impl Game {
         }
         print!("╚");
         let message = format!("Score: {}", self.score);
-        for _ in 0..width * 3 - message.len() {
+        for _ in 0..width * 2 - message.len() {
             print!("═");
         }
         print!("{message}");
@@ -182,13 +151,6 @@ impl Game {
         return matches!(self.state, State::GameOver)
     }
 
-    fn clear_screen() {
-        // \x1B[2J clean screen
-        // \x1B[1;1H set the cursor to the start of the screen
-        print!("{}[2J{}[1;1H", 27 as char, 27 as char);
-
-        io::stdout().flush().unwrap();
-    }
 
     // Checks wheter a piece can move
     fn is_valid_move(&self, piece: &Tetromino) -> bool {
