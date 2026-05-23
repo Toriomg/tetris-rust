@@ -30,19 +30,11 @@ impl TypeTetromino {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Rotation {
-    Deg0,
-    Deg90,
-    Deg180,
-    Deg270,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub struct Tetromino {
     pub t_type: TypeTetromino,
     pub x: i32,
     pub y: i32,
-    rotation: Rotation
+    rotation: i32,
 }
 
 impl Tetromino {
@@ -51,10 +43,11 @@ impl Tetromino {
             t_type,
             x: (playfield_width as i32) / 2 - 1, // Minus 1 as it starts in 0
             y: 1,
-            rotation: Rotation::Deg0,
+            rotation: 0,
         }
     }
-    pub fn shape(&self) -> [(i32, i32); 4] {
+
+    fn shape_size(&self) -> [(i32, i32); 4] {
         // By the coordinates place the shape of the piece
         match self.t_type {
             TypeTetromino::I => [(-1, 0), (0, 0), (1, 0), (2, 0)],
@@ -66,7 +59,24 @@ impl Tetromino {
             TypeTetromino::L => [(0, -1), (0, 0), (1, 1), (0, 1)],
         }
     }
-    pub fn rotate(&mut self){
 
+    pub fn shape(&self) -> [(i32, i32); 4] {
+        let shape = self.shape_size();
+        shape.map(|(x, y)| {
+            match self.rotation {
+                0 | 360 => (x, y),
+                90 => (-y, x),
+                180 => (-x, -y),
+                270 => (y, -x),
+                _ => (x, y),
+            }
+        })
+    }
+
+    pub fn rotate(&mut self) {
+        match self.t_type {
+            TypeTetromino::O => (), // The square piece does not rotate
+            _ => self.rotation = (self.rotation + 90) % 360,
+        }
     }
 }

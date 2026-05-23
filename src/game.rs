@@ -7,6 +7,7 @@ struct Playfield {
     height: u32,
 }
 
+#[derive(PartialEq)]
 enum Actions {
     Still,
     Right,
@@ -23,8 +24,8 @@ impl Actions {
         let mut rng = rand::thread_rng();
         match rng.gen_range(0..5) {
             0 => Self::Still,
-            1 => Self::Right,
-            2 => Self::Left,
+            //1 => Self::Right,
+            //2 => Self::Left,
             //3 => Self::Down,
             4 => Self::Rotate,
             _ => Self::Still, // Default case for safety
@@ -60,11 +61,11 @@ impl Cell {
                 let color = match t_type {
                     TypeTetromino::I => "\x1b[36m", // Cyan
                     TypeTetromino::O => "\x1b[33m", // Yellow
-                    TypeTetromino::T => "\x1b[35m", // Magenta
+                    TypeTetromino::T => "\x1b[34m", // Magenta
                     TypeTetromino::S => "\x1b[32m", // Green
-                    TypeTetromino::Z => "\x1b[31m", // Red
-                    TypeTetromino::J => "\x1b[34m", // Blue
-                    TypeTetromino::L => "\x1b[37m", // White (or use \x1b[38;5;208m for Orange)
+                    TypeTetromino::Z => "\x1b[37m", // Red
+                    TypeTetromino::J => "\x1b[35m", // Blue
+                    TypeTetromino::L => "\x1b[31m", // White (or use \x1b[38;5;208m for Orange)
                 };
                 // Reset the color
                 let reset = "\x1b[0m";
@@ -106,7 +107,7 @@ impl Game {
         print!("╔");
         let message = "GB Tetris";
         print!("{message}");
-        for _ in 0..width*3 - message.len() {
+        for _ in 0..width * 3 - message.len() {
             print!("═");
         }
         println!("╗");
@@ -132,9 +133,11 @@ impl Game {
             println!("║");
         }
         print!("╚");
-        for _ in 0..width {
-            print!("═══");
+        let message = format!("Score: {}", self.score);
+        for _ in 0..width * 3 - message.len() {
+            print!("═");
         }
+        print!("{message}");
         println!("╝");
     }
 
@@ -143,7 +146,7 @@ impl Game {
         self.current_piece = Tetromino::new(random_type, self.board.width);
 
         // if its colliding its game over
-        if !self.is_valid_move(self.current_piece.x, self.current_piece.y) {
+        if !self.is_valid_move(&self.current_piece) {
             self.state = State::GameOver;
         }
     }
@@ -171,10 +174,10 @@ impl Game {
     }
 
     // Checks wheter a piece can move
-    fn is_valid_move(&self, piece_x: i32, piece_y: i32) -> bool {
-        for (offset_x, offset_y) in self.current_piece.shape() {
-            let abs_x = piece_x + offset_x;
-            let abs_y = piece_y + offset_y;
+    fn is_valid_move(&self, piece: &Tetromino) -> bool {
+        for (offset_x, offset_y) in piece.shape() {
+            let abs_x = piece.x + offset_x;
+            let abs_y = piece.y + offset_y;
 
             // lat left
             if abs_x < 0 {
@@ -203,27 +206,24 @@ impl Game {
     }
 
     fn move_piece(&mut self, action: Actions) {
+        // copy of the piece in the future
+        let mut next_piece = self.current_piece;
+
         match action {
-            Actions::Left => {
-                if self.is_valid_move(self.current_piece.x - 1, self.current_piece.y) {
-                    self.current_piece.x -= 1;
-                }
-            }
-            Actions::Right => {
-                if self.is_valid_move(self.current_piece.x + 1, self.current_piece.y) {
-                    self.current_piece.x += 1;
-                }
-            }
-            Actions::Down => {
-                if self.is_valid_move(self.current_piece.x, self.current_piece.y + 1) {
-                    self.current_piece.y += 1;
-                } else {
-                    // piece placed if cannot move more
-                    self.place_piece();
-                    self.spawn_piece();
-                }
-            }
+            Actions::Left => next_piece.x -= 1,
+            Actions::Right => next_piece.x += 1,
+            Actions::Down => next_piece.y += 1,
+            Actions::Rotate => next_piece.rotate(),
             _ => (),
+        }
+
+        if self.is_valid_move(&next_piece) {
+            // if its valid change the piece
+            self.current_piece = next_piece;
+        } else if action == Actions::Down {
+            // If cannot descend more then new piece
+            self.place_piece();
+            self.spawn_piece();
         }
     }
 
@@ -247,6 +247,7 @@ impl Game {
                 self.playfield_mtrx[y_idx][x_idx] = Cell::Taken(self.current_piece.t_type);
             }
         }
+        self.score += 4;
         self.clear_lines();
     }
 
