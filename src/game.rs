@@ -46,6 +46,7 @@ pub struct Game {
     board: Playfield,
     playfield_mtrx: Vec<Vec<Cell>>,
     pub score: u32,
+    level: u8,
     state: State,
     current_piece: Option<Tetromino>,
 }
@@ -58,8 +59,9 @@ impl Game {
                 width: width,
                 height: height,
             },
-            score: 0,
             playfield_mtrx: mtx,
+            score: 0,
+            level: 9,
             state: State::Playing,
             current_piece: Some(Tetromino::new(TypeTetromino::random(), width)),
         };
@@ -237,7 +239,7 @@ impl Game {
     fn clear_lines(&mut self) {
     let mut full_lines = Vec::new();
 
-    // 1. Identificar qué filas están llenas
+    // identify full lines
     for (y, row) in self.playfield_mtrx.iter().enumerate() {
         if row.iter().all(|cell| !matches!(cell, Cell::Empty)) {
             full_lines.push(y);
@@ -246,28 +248,31 @@ impl Game {
 
     if full_lines.is_empty() { return; }
 
-    // 2. Efecto visual: Convertir esas filas a estado 'Clearing'
+    // Make the lines visualy cleared
     for &y in &full_lines {
         for x in 0..self.board.width as usize {
             self.playfield_mtrx[y][x] = Cell::Clearing;
         }
     }
-
-    // 3. Forzar un dibujo para que el usuario vea las líneas blancas
-    self.draw(); 
-    
-    // 4. Pausa dramática (ajusta los ms a tu gusto)
+    // force drawing
+    self.draw();     
     std::thread::sleep(std::time::Duration::from_millis(150));
 
-    // 5. Ahora sí, eliminamos físicamente las líneas (usando tu lógica anterior)
+    // clean the lines
     self.playfield_mtrx.retain(|row| {
-        // Ahora descartamos las que son Clearing (que eran las Full)
+        // discard the cleared ones
         !row.iter().all(|cell| matches!(cell, Cell::Clearing))
     });
 
-    // 6. Reponer las líneas arriba y sumar puntuación
     let deleted_count = full_lines.len();
-    self.score += deleted_count as u32 * 100;
+    // change score
+    self.score += match deleted_count {
+        2 => 100 * (self.level as u32 + 1),
+        3 => 300 * (self.level as u32 + 1),
+        4 => 1200 * (self.level as u32 + 1),
+        1 | _ => 40 * (self.level as u32 + 1),
+    };
+    // Append to the start the new rows
     for _ in 0..deleted_count {
         let new_row = vec![Cell::Empty; self.board.width as usize];
         self.playfield_mtrx.insert(0, new_row);

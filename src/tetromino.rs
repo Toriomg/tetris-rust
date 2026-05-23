@@ -42,7 +42,7 @@ impl Tetromino {
         Self {
             t_type,
             x: (playfield_width as i32) / 2 - 1, // Minus 1 as it starts in 0
-            y: 1,
+            y: 0,
             rotation: 0,
         }
     }
