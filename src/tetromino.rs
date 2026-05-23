@@ -30,10 +30,19 @@ impl TypeTetromino {
 }
 
 #[derive(Debug, Clone, Copy)]
+enum Rotation {
+    Deg0,
+    Deg90,
+    Deg180,
+    Deg270,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct Tetromino {
     pub t_type: TypeTetromino,
     pub x: i32,
     pub y: i32,
+    rotation: Rotation
 }
 
 impl Tetromino {
@@ -42,6 +51,7 @@ impl Tetromino {
             t_type,
             x: (playfield_width as i32) / 2 - 1, // Minus 1 as it starts in 0
             y: 1,
+            rotation: Rotation::Deg0,
         }
     }
     pub fn shape(&self) -> [(i32, i32); 4] {
@@ -55,5 +65,8 @@ impl Tetromino {
             TypeTetromino::J => [(0, -1), (0, 0), (-1, 1), (0, 1)],
             TypeTetromino::L => [(0, -1), (0, 0), (1, 1), (0, 1)],
         }
+    }
+    pub fn rotate(&mut self){
+
     }
 }

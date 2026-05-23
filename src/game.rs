@@ -104,8 +104,10 @@ impl Game {
         let width = self.playfield_mtrx[0].len();
 
         print!("╔");
-        for _ in 0..width {
-            print!("═══");
+        let message = "GB Tetris";
+        print!("{message}");
+        for _ in 0..width*3 - message.len() {
+            print!("═");
         }
         println!("╗");
 
