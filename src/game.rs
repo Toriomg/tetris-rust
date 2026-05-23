@@ -46,7 +46,7 @@ pub struct Game {
     board: Playfield,
     playfield_mtrx: Vec<Vec<Cell>>,
     pub score: u32,
-    pub state: State,
+    state: State,
     current_piece: Option<Tetromino>,
 }
 
@@ -54,12 +54,14 @@ pub struct Game {
 enum Cell {
     Empty,
     Taken(TypeTetromino),
+    Clearing,
 }
 
 impl Cell {
     pub fn draw(&self) {
         match self {
             Cell::Empty => print!("   "),
+            Cell::Clearing => print!("\x1b[47m   \x1b[0m"),
             Cell::Taken(t_type) => {
                 let color = match t_type {
                     TypeTetromino::I => "\x1b[36m", // Cyan
@@ -72,8 +74,8 @@ impl Cell {
                 };
                 // Reset the color
                 let reset = "\x1b[0m";
-                print!("{}[■]{}", color, reset);
-                //print!("{} █ {}", color, reset);
+                //print!("{}[■]{}", color, reset);
+                print!("{}███{}", color, reset);
             }
         }
     }
@@ -271,25 +273,42 @@ impl Game {
     }
 
     fn clear_lines(&mut self) {
-        // safe height for late check then
-        let old_height = self.playfield_mtrx.len();
+    let mut full_lines = Vec::new();
 
-        // clean non full lines
-        self.playfield_mtrx
-            .retain(|row| row.iter().any(|cell| matches!(cell, Cell::Empty)));
-
-        let deleted_count = old_height - self.playfield_mtrx.len();
-
-        if deleted_count > 0 {
-            // Add score
-            self.score += deleted_count as u32 * 100;
-
-            for _ in 0..deleted_count {
-                // New rows
-                let new_row = vec![Cell::Empty; self.board.width as usize];
-                // inserted into the start
-                self.playfield_mtrx.insert(0, new_row);
-            }
+    // 1. Identificar qué filas están llenas
+    for (y, row) in self.playfield_mtrx.iter().enumerate() {
+        if row.iter().all(|cell| !matches!(cell, Cell::Empty)) {
+            full_lines.push(y);
         }
     }
+
+    if full_lines.is_empty() { return; }
+
+    // 2. Efecto visual: Convertir esas filas a estado 'Clearing'
+    for &y in &full_lines {
+        for x in 0..self.board.width as usize {
+            self.playfield_mtrx[y][x] = Cell::Clearing;
+        }
+    }
+
+    // 3. Forzar un dibujo para que el usuario vea las líneas blancas
+    self.draw(); 
+    
+    // 4. Pausa dramática (ajusta los ms a tu gusto)
+    std::thread::sleep(std::time::Duration::from_millis(150));
+
+    // 5. Ahora sí, eliminamos físicamente las líneas (usando tu lógica anterior)
+    self.playfield_mtrx.retain(|row| {
+        // Ahora descartamos las que son Clearing (que eran las Full)
+        !row.iter().all(|cell| matches!(cell, Cell::Clearing))
+    });
+
+    // 6. Reponer las líneas arriba y sumar puntuación
+    let deleted_count = full_lines.len();
+    self.score += deleted_count as u32 * 100;
+    for _ in 0..deleted_count {
+        let new_row = vec![Cell::Empty; self.board.width as usize];
+        self.playfield_mtrx.insert(0, new_row);
+    }
+}
 }

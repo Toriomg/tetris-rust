@@ -26,9 +26,8 @@ fn main() {
         }
         game.draw();
         if game.is_game_over() {
-            // Opcional: Podrías dibujar una última vez o mostrar "Game Over"
             println!("   GAME OVER - Score: {}   ", game.score);
-            std::thread::sleep(Duration::from_secs(2)); // Pausa para que el usuario vea que perdió
+            std::thread::sleep(Duration::from_secs(2)); 
             break; 
         }
         std::thread::sleep(std::time::Duration::from_millis(5));
