@@ -1,6 +1,6 @@
 use rand::Rng;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TypeTetromino {
     I, // 4 Cell bar
     O, // Square
@@ -27,6 +27,18 @@ impl TypeTetromino {
             _ => Self::L, // Default case for safety
         }
     }
+
+    pub fn get_base_shape(&self) -> [(i32, i32); 4] {
+        match self {
+            TypeTetromino::I => [(-1, 0), (0, 0), (1, 0), (2, 0)],
+            TypeTetromino::O => [(0, 0), (1, 0), (0, 1), (1, 1)],
+            TypeTetromino::T => [(-1, 0), (0, 0), (1, 0), (0, 1)],
+            TypeTetromino::S => [(0, 0), (1, 0), (-1, 1), (0, 1)],
+            TypeTetromino::Z => [(-1, 0), (0, 0), (0, 1), (1, 1)],
+            TypeTetromino::J => [(0, -1), (0, 0), (-1, 1), (0, 1)],
+            TypeTetromino::L => [(0, -1), (0, 0), (1, 1), (0, 1)],
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,7 +46,7 @@ pub struct Tetromino {
     pub t_type: TypeTetromino,
     pub x: i32,
     pub y: i32,
-    rotation: i32,
+    pub rotation: i32,
 }
 
 impl Tetromino {
@@ -47,22 +59,9 @@ impl Tetromino {
         }
     }
 
-    fn shape_size(&self) -> [(i32, i32); 4] {
-        // By the coordinates place the shape of the piece
-        match self.t_type {
-            TypeTetromino::I => [(-1, 0), (0, 0), (1, 0), (2, 0)],
-            TypeTetromino::O => [(0, 0), (1, 0), (0, 1), (1, 1)],
-            TypeTetromino::T => [(-1, 0), (0, 0), (1, 0), (0, 1)],
-            TypeTetromino::S => [(0, 0), (1, 0), (-1, 1), (0, 1)],
-            TypeTetromino::Z => [(-1, 0), (0, 0), (0, 1), (1, 1)],
-            TypeTetromino::J => [(0, -1), (0, 0), (-1, 1), (0, 1)],
-            TypeTetromino::L => [(0, -1), (0, 0), (1, 1), (0, 1)],
-        }
-    }
-
     pub fn shape(&self) -> [(i32, i32); 4] {
-        let shape = self.shape_size();
-        shape.map(|(x, y)| match self.rotation {
+        let base = self.t_type.get_base_shape();
+        base.map(|(x, y)| match self.rotation {
             0 | 360 => (x, y),
             90 => (-y, x),
             180 => (-x, -y),

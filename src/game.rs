@@ -1,10 +1,18 @@
 use crate::cell::Cell;
 use crate::tetromino::{Tetromino, TypeTetromino};
 use rand::Rng;
+use std::collections::VecDeque;
 
-struct Playfield {
-    width: u32,
-    height: u32,
+pub const PREVIEW_COUNT: usize = 0;
+const SCORE_PER_PIECE: u32 = 4;
+const SCORE_SINGLE_LINE: u32 = 40;
+const SCORE_DOUBLE_LINE: u32 = 100;
+const SCORE_TRIPLE_LINE: u32 = 300;
+const SCORE_TETRIS_LINE: u32 = 1200;
+
+pub struct Playfield {
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(PartialEq)]
@@ -35,7 +43,7 @@ impl Actions {
 }
 
 #[derive(PartialEq)]
-enum State {
+pub enum State {
     Playing,
     Paused,
     GameOver,
@@ -43,90 +51,53 @@ enum State {
 }
 
 pub struct Game {
-    board: Playfield,
-    playfield_mtrx: Vec<Vec<Cell>>,
+    pub board: Playfield,
+    pub playfield_mtrx: Vec<Vec<Cell>>,
     pub score: u32,
-    level: u8,
-    state: State,
-    current_piece: Option<Tetromino>,
+    pub level: u8,
+    pub state: State,
+    pub current_piece: Option<Tetromino>,
+    pub next_pieces: VecDeque<TypeTetromino>,
 }
 
 impl Game {
     pub fn new(width: u32, height: u32) -> Self {
         let mtx = vec![vec![Cell::Empty; width as usize]; height as usize];
-        let g = Self {
-            board: Playfield {
-                width: width,
-                height: height,
-            },
+        
+        // init the new queue
+        let mut next_pieces = VecDeque::new();
+        let following_pieces = if PREVIEW_COUNT == 0 {1} else {PREVIEW_COUNT};
+        for _ in 0..following_pieces {
+            next_pieces.push_back(TypeTetromino::random());
+        }
+
+        // the first piece
+        let first_piece_type = next_pieces.pop_front().unwrap();
+        next_pieces.push_back(TypeTetromino::random());
+
+        Self {
+            board: Playfield { width, height },
             playfield_mtrx: mtx,
             score: 0,
             level: 9,
             state: State::Playing,
-            current_piece: Some(Tetromino::new(TypeTetromino::random(), width)),
-        };
-        if cfg!(debug_assertions) {
-            crate::println_raw!("Tablero inicializado");
+            current_piece: Some(Tetromino::new(first_piece_type, width)),
+            next_pieces,
         }
-        g
-    }
-
-    pub fn draw(&self) {
-        crate::utils::clear_screen();
-        let height = self.playfield_mtrx.len();
-        if height == 0 {
-            return;
-        }
-        let width = self.playfield_mtrx[0].len();
-
-        print!("╔");
-        let message = "GB Tetris";
-        print!("{message}");
-        for _ in 0..width * 2 - message.len() {
-            print!("═");
-        }
-        crate::println_raw!("╗");
-
-        for (y, row) in self.playfield_mtrx.iter().enumerate() {
-            print!("║");
-            for (x, cell) in row.iter().enumerate() {
-                let mut is_piece_part = false;
-                if self.state == State::Playing {
-                    if let Some(piece) = &self.current_piece {
-                        for (offset_x, offset_y) in piece.shape() {
-                            if piece.x + offset_x == x as i32 && piece.y + offset_y == y as i32 {
-                                is_piece_part = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if is_piece_part {
-                    Cell::Taken(self.current_piece.as_ref().unwrap().t_type).draw();
-                } else {
-                    cell.draw();
-                }
-            }
-            crate::println_raw!("║");
-        }
-        print!("╚");
-        let message = format!("Score: {}", self.score);
-        for _ in 0..width * 2 - message.len() {
-            print!("═");
-        }
-        print!("{message}");
-        crate::println_raw!("╝");
     }
 
     fn spawn_piece(&mut self) {
-        let random_type = TypeTetromino::random();
-        let new_piece = Tetromino::new(random_type, self.board.width);
-
-        // if its colliding its game over
-        if !self.is_valid_move(&new_piece) {
-            self.state = State::GameOver;
-        } else {
-            self.current_piece = Some(new_piece);
+        if let Some(t_type) = self.next_pieces.pop_front() {
+            // Get the new piece
+            self.next_pieces.push_back(TypeTetromino::random());
+            let new_piece = Tetromino::new(t_type, self.board.width);
+            
+            // Check if its a valid move
+            if !self.is_valid_move(&new_piece) {
+                self.state = State::GameOver;
+            } else {
+                self.current_piece = Some(new_piece);
+            }
         }
     }
 
@@ -256,8 +227,8 @@ impl Game {
             }
         }
         // force drawing
-        self.draw();
-        std::thread::sleep(std::time::Duration::from_millis(150));
+        //self.draw();
+        //std::thread::sleep(std::time::Duration::from_millis(150));
 
         // clean the lines
         self.playfield_mtrx.retain(|row| {

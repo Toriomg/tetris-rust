@@ -1,8 +1,9 @@
-    mod game;
+mod cell;
+mod game;
 mod input;
 mod tetromino;
+mod ui;
 mod utils;
-mod cell;
 use game::Game;
 
 use std::time::{Duration, Instant};
@@ -12,6 +13,7 @@ fn main() {
     let mut game = Game::new(10, 18);
     let mut last_drop = Instant::now();
     let drop_interval = Duration::from_millis(150);
+
     loop {
         if let Some(action) = input::poll_action() {
             match action {
@@ -21,16 +23,19 @@ fn main() {
                 _ => game.move_piece(action),
             }
         }
+
         if last_drop.elapsed() >= drop_interval {
             game.update();
             last_drop = Instant::now();
         }
-        game.draw();
+
+        ui::draw_game(&game);
+
         if game.is_game_over() {
             println!("   GAME OVER - Score: {}   ", game.score);
-            break; 
+            break;
         }
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
-    input::cleanup_terminal(); 
+    input::cleanup_terminal();
 }
