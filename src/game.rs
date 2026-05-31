@@ -3,7 +3,7 @@ use crate::tetromino::{Tetromino, TypeTetromino};
 use rand::Rng;
 use std::collections::VecDeque;
 
-pub const PREVIEW_COUNT: usize = 0;
+pub const PREVIEW_COUNT: usize = 3;
 const SCORE_PER_PIECE: u32 = 4;
 const SCORE_SINGLE_LINE: u32 = 40;
 const SCORE_DOUBLE_LINE: u32 = 100;
@@ -63,10 +63,10 @@ pub struct Game {
 impl Game {
     pub fn new(width: u32, height: u32) -> Self {
         let mtx = vec![vec![Cell::Empty; width as usize]; height as usize];
-        
+
         // init the new queue
         let mut next_pieces = VecDeque::new();
-        let following_pieces = if PREVIEW_COUNT == 0 {1} else {PREVIEW_COUNT};
+        let following_pieces = if PREVIEW_COUNT == 0 { 1 } else { PREVIEW_COUNT };
         for _ in 0..following_pieces {
             next_pieces.push_back(TypeTetromino::random());
         }
@@ -91,7 +91,7 @@ impl Game {
             // Get the new piece
             self.next_pieces.push_back(TypeTetromino::random());
             let new_piece = Tetromino::new(t_type, self.board.width);
-            
+
             // Check if its a valid move
             if !self.is_valid_move(&new_piece) {
                 self.state = State::GameOver;
@@ -109,9 +109,10 @@ impl Game {
             State::Spawning(count) => {
                 if count > 0 {
                     // Cecrement spawning counter
-                    self.state = State::Spawning(count - 1);
+                    self.state = State::Spawning(0);
                 } else {
                     // New piece
+                    self.process_line_clearing();
                     self.state = State::Playing;
                     self.spawn_piece();
                 }
@@ -203,49 +204,51 @@ impl Game {
             }
         }
         self.score += 4;
-        self.clear_lines();
+        self.mark_full_lines();
     }
 
-    fn clear_lines(&mut self) {
-        let mut full_lines = Vec::new();
-
-        // identify full lines
-        for (y, row) in self.playfield_mtrx.iter().enumerate() {
+    fn mark_full_lines(&mut self) {
+        // Identify lines where every cell is not empty
+        for row in self.playfield_mtrx.iter_mut() {
             if row.iter().all(|cell| !matches!(cell, Cell::Empty)) {
-                full_lines.push(y);
+                // Set all cells in the full row to Clearing state
+                for cell in row.iter_mut() {
+                    *cell = Cell::Clearing;
+                }
             }
         }
+    }
 
-        if full_lines.is_empty() {
+    fn process_line_clearing(&mut self) {
+        let mut cleared_count = 0;
+
+        // Count and remove rows that contain Clearing cells
+        self.playfield_mtrx.retain(|row| {
+            let is_clearing = row.iter().any(|cell| matches!(cell, Cell::Clearing));
+            if is_clearing {
+                cleared_count += 1;
+                false // Remove the row
+            } else {
+                true // Keep the row
+            }
+        });
+
+        if cleared_count == 0 {
             return;
         }
 
-        // Make the lines visualy cleared
-        for &y in &full_lines {
-            for x in 0..self.board.width as usize {
-                self.playfield_mtrx[y][x] = Cell::Clearing;
-            }
-        }
-        // force drawing
-        //self.draw();
-        //std::thread::sleep(std::time::Duration::from_millis(150));
-
-        // clean the lines
-        self.playfield_mtrx.retain(|row| {
-            // discard the cleared ones
-            !row.iter().all(|cell| matches!(cell, Cell::Clearing))
-        });
-
-        let deleted_count = full_lines.len();
-        // change score
-        self.score += match deleted_count {
-            2 => 100 * (self.level as u32 + 1),
-            3 => 300 * (self.level as u32 + 1),
-            4 => 1200 * (self.level as u32 + 1),
-            1 | _ => 40 * (self.level as u32 + 1),
+        // Calculate score based on lines cleared and current level
+        let multiplier = self.level as u32 + 1;
+        self.score += match cleared_count {
+            1 => SCORE_SINGLE_LINE * multiplier,
+            2 => SCORE_DOUBLE_LINE * multiplier,
+            3 => SCORE_TRIPLE_LINE * multiplier,
+            4 => SCORE_TETRIS_LINE * multiplier,
+            _ => 0,
         };
-        // Append to the start the new rows
-        for _ in 0..deleted_count {
+
+        // Refill the top of the matrix with new empty rows
+        for _ in 0..cleared_count {
             let new_row = vec![Cell::Empty; self.board.width as usize];
             self.playfield_mtrx.insert(0, new_row);
         }
