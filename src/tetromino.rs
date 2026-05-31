@@ -62,14 +62,12 @@ impl Tetromino {
 
     pub fn shape(&self) -> [(i32, i32); 4] {
         let shape = self.shape_size();
-        shape.map(|(x, y)| {
-            match self.rotation {
-                0 | 360 => (x, y),
-                90 => (-y, x),
-                180 => (-x, -y),
-                270 => (y, -x),
-                _ => (x, y),
-            }
+        shape.map(|(x, y)| match self.rotation {
+            0 | 360 => (x, y),
+            90 => (-y, x),
+            180 => (-x, -y),
+            270 => (y, -x),
+            _ => (x, y),
         })
     }
 

@@ -1,6 +1,6 @@
-use crate::tetromino::{ Tetromino, TypeTetromino};
+use crate::cell::Cell;
+use crate::tetromino::{Tetromino, TypeTetromino};
 use rand::Rng;
-use crate::cell::{Cell};
 
 struct Playfield {
     width: u32,
@@ -150,9 +150,8 @@ impl Game {
     }
 
     pub fn is_game_over(&self) -> bool {
-        return matches!(self.state, State::GameOver)
+        return matches!(self.state, State::GameOver);
     }
-
 
     // Checks wheter a piece can move
     fn is_valid_move(&self, piece: &Tetromino) -> bool {
@@ -237,45 +236,47 @@ impl Game {
     }
 
     fn clear_lines(&mut self) {
-    let mut full_lines = Vec::new();
+        let mut full_lines = Vec::new();
 
-    // identify full lines
-    for (y, row) in self.playfield_mtrx.iter().enumerate() {
-        if row.iter().all(|cell| !matches!(cell, Cell::Empty)) {
-            full_lines.push(y);
+        // identify full lines
+        for (y, row) in self.playfield_mtrx.iter().enumerate() {
+            if row.iter().all(|cell| !matches!(cell, Cell::Empty)) {
+                full_lines.push(y);
+            }
+        }
+
+        if full_lines.is_empty() {
+            return;
+        }
+
+        // Make the lines visualy cleared
+        for &y in &full_lines {
+            for x in 0..self.board.width as usize {
+                self.playfield_mtrx[y][x] = Cell::Clearing;
+            }
+        }
+        // force drawing
+        self.draw();
+        std::thread::sleep(std::time::Duration::from_millis(150));
+
+        // clean the lines
+        self.playfield_mtrx.retain(|row| {
+            // discard the cleared ones
+            !row.iter().all(|cell| matches!(cell, Cell::Clearing))
+        });
+
+        let deleted_count = full_lines.len();
+        // change score
+        self.score += match deleted_count {
+            2 => 100 * (self.level as u32 + 1),
+            3 => 300 * (self.level as u32 + 1),
+            4 => 1200 * (self.level as u32 + 1),
+            1 | _ => 40 * (self.level as u32 + 1),
+        };
+        // Append to the start the new rows
+        for _ in 0..deleted_count {
+            let new_row = vec![Cell::Empty; self.board.width as usize];
+            self.playfield_mtrx.insert(0, new_row);
         }
     }
-
-    if full_lines.is_empty() { return; }
-
-    // Make the lines visualy cleared
-    for &y in &full_lines {
-        for x in 0..self.board.width as usize {
-            self.playfield_mtrx[y][x] = Cell::Clearing;
-        }
-    }
-    // force drawing
-    self.draw();     
-    std::thread::sleep(std::time::Duration::from_millis(150));
-
-    // clean the lines
-    self.playfield_mtrx.retain(|row| {
-        // discard the cleared ones
-        !row.iter().all(|cell| matches!(cell, Cell::Clearing))
-    });
-
-    let deleted_count = full_lines.len();
-    // change score
-    self.score += match deleted_count {
-        2 => 100 * (self.level as u32 + 1),
-        3 => 300 * (self.level as u32 + 1),
-        4 => 1200 * (self.level as u32 + 1),
-        1 | _ => 40 * (self.level as u32 + 1),
-    };
-    // Append to the start the new rows
-    for _ in 0..deleted_count {
-        let new_row = vec![Cell::Empty; self.board.width as usize];
-        self.playfield_mtrx.insert(0, new_row);
-    }
-}
 }

@@ -1,1 +1,99 @@
-/target
+# ========================
+# Rust / Cargo
+# ========================
+
+/target/
+
+**/*.rs.bk
+
+# ========================
+# Environment Variables & Secrets
+# ========================
+.env
+.env*.local
+.env.development
+.env.test
+.env.production
+*.env
+
+# ========================
+# IDEs & Editors
+# ========================
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (IntelliJ, CLion, RustRover)
+.idea/
+*.iml
+
+# Vim
+*~
+*.swp
+*.swo
+Session.vim
+.netrwhist
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ========================
+# Testing & Analysis
+# ========================
+
+# Compilation logs
+*.log
+
+# Coverage reports (tarpaulin, grcov)
+*.gcda
+*.gcno
+lcov.info
+coverage/
+tarpaulin-report.html
+
+# Benchmarking (Criterion.rs)
+target/criterion/
+
+# Documentation (local builds)
+# Usually inside target/doc, but in case you move it:
+doc/
+
+# ========================
+# Operating Systems
+# ========================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Linux
+.fuse_hidden
+.directory
+.Trash-*
+
+# ========================
+# Other
+# ========================
+
+# Temporary files
+tmp/
+temp/

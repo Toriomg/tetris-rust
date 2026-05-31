@@ -1,4 +1,4 @@
-mod game;
+    mod game;
 mod input;
 mod tetromino;
 mod utils;
