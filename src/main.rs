@@ -28,8 +28,7 @@ fn main() {
             game.update();
             last_drop = Instant::now();
         }
-
-        ui::draw_game(&game);
+        game.draw();
 
         if game.is_game_over() {
             println!("   GAME OVER - Score: {}   ", game.score);

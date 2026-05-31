@@ -1,5 +1,6 @@
 use crate::cell::Cell;
 use crate::tetromino::{Tetromino, TypeTetromino};
+use crate::ui;
 use rand::Rng;
 use std::collections::VecDeque;
 
@@ -84,6 +85,10 @@ impl Game {
             current_piece: Some(Tetromino::new(first_piece_type, width)),
             next_pieces,
         }
+    }
+
+    pub fn draw(&self) {
+        ui::draw_game(self);
     }
 
     fn spawn_piece(&mut self) {
