@@ -45,10 +45,7 @@ fn draw_header(board_width: usize, sidebar_width: usize, preview_count: usize) {
         print!("╗{}", SIDEBAR_GAP);
         print!("╔");
         let next_title = " NEXT ";
-        print!(
-            "{next_title}{}",
-            "═".repeat(sidebar_width - next_title.len())
-        );
+        print!("{next_title}{}", "═".repeat(sidebar_width - next_title.len()));
         crate::println_raw!("╗");
     } else {
         crate::println_raw!("╗");
@@ -58,18 +55,16 @@ fn draw_header(board_width: usize, sidebar_width: usize, preview_count: usize) {
 // Draws a single row of the playfield
 fn draw_board_row(y: usize, width: usize, game: &Game) {
     print!("║");
-    for x in 0..width {
-        if game.state == State::Paused {
-            if y == game.board.height as usize / 2 {
-            
+    if game.state == State::Paused {
+        draw_paused_row(y, width, game.board.height as usize);
+    } else {
+        for x in 0..width {
+            if is_active_piece_at(x as i32, y as i32, game) {
+                let p_type = game.current_piece.as_ref().unwrap().t_type;
+                Cell::Taken(p_type).draw();
             } else {
-                Cell::Empty.draw();
+                game.playfield_mtrx[y][x].draw();
             }
-        } else if is_active_piece_at(x as i32, y as i32, game) {
-            let p_type = game.current_piece.as_ref().unwrap().t_type;
-            Cell::Taken(p_type).draw();
-        } else {
-            game.playfield_mtrx[y][x].draw();
         }
     }
 
@@ -78,6 +73,31 @@ fn draw_board_row(y: usize, width: usize, game: &Game) {
         print!("║{}", SIDEBAR_GAP);
     } else {
         print!("║");
+    }
+}
+
+fn draw_paused_row(y: usize, width: usize, height: usize) {
+    if y == height / 2 {
+        let text = " PAUSED ";
+        let total_chars = width * 2;
+
+        // Verify that exists enough width for the board
+        if total_chars >= text.len() {
+            let left_padding = (total_chars - text.len()) / 2;
+            let right_padding = total_chars - text.len() - left_padding;
+
+            print!("{}{}{}", " ".repeat(left_padding), text, " ".repeat(right_padding));
+        } else {
+            // If its tiny let it empty
+            for _ in 0..width {
+                Cell::Empty.draw();
+            }
+        }
+    } else {
+        // for any other row, empty row
+        for _ in 0..width {
+            Cell::Empty.draw();
+        }
     }
 }
 
@@ -93,9 +113,9 @@ fn draw_sidebar_row(y: usize, width: usize, game: &Game) {
         let shape = t_type.get_base_shape();
 
         for local_x in 0..PREVIEW_INTERNAL_GRID_WIDTH {
-            let is_part = shape.iter().any(|(ox, oy)| {
-                ox + PREVIEW_X_OFFSET == local_x as i32 && oy + PREVIEW_Y_OFFSET == local_y
-            });
+            let is_part = shape
+                .iter()
+                .any(|(ox, oy)| ox + PREVIEW_X_OFFSET == local_x as i32 && oy + PREVIEW_Y_OFFSET == local_y);
 
             if is_part && game.state != State::Paused {
                 Cell::Taken(t_type).draw();
@@ -116,10 +136,7 @@ fn draw_sidebar_row(y: usize, width: usize, game: &Game) {
 fn draw_footer(board_width: usize, score: u32) {
     print!("╚");
     let score_str = format!(" SCORE: {score} ");
-    print!(
-        "{}{score_str}",
-        "═".repeat(board_width * 2 - score_str.len())
-    );
+    print!("{}{score_str}", "═".repeat(board_width * 2 - score_str.len()));
     crate::println_raw!("╝");
 }
 
@@ -130,10 +147,7 @@ fn is_active_piece_at(x: i32, y: i32, game: &Game) -> bool {
     }
 
     if let Some(piece) = &game.current_piece {
-        return piece
-            .shape()
-            .iter()
-            .any(|(ox, oy)| piece.x + ox == x && piece.y + oy == y);
+        return piece.shape().iter().any(|(ox, oy)| piece.x + ox == x && piece.y + oy == y);
     }
     false
 }

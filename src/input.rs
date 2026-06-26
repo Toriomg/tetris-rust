@@ -1,9 +1,9 @@
+use crate::game::Actions;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 use std::time::Duration;
-use crate::game::{Actions};
 
 pub fn init_terminal() {
     enable_raw_mode().expect("Failed to enable raw mode");
@@ -24,7 +24,7 @@ pub fn poll_action() -> Option<Actions> {
                     KeyCode::Right => Some(Actions::Right),
                     KeyCode::Down => Some(Actions::Down),
                     KeyCode::Char('z') | KeyCode::Up => Some(Actions::Rotate),
-                    KeyCode::Esc | KeyCode::Char('q')=> Some(Actions::Quit),
+                    KeyCode::Esc | KeyCode::Char('q') => Some(Actions::Quit),
                     KeyCode::Char('p') => Some(Actions::Pause),
                     _ => None,
                 };

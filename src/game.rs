@@ -216,11 +216,7 @@ impl Game {
                 let abs_y = piece.y + offset_y;
 
                 // Ensure piece is within the matrix limits
-                if abs_x >= 0
-                    && abs_x < self.board.width as i32
-                    && abs_y >= 0
-                    && abs_y < self.board.height as i32
-                {
+                if abs_x >= 0 && abs_x < self.board.width as i32 && abs_y >= 0 && abs_y < self.board.height as i32 {
                     let x_idx = abs_x as usize;
                     let y_idx = abs_y as usize;
 

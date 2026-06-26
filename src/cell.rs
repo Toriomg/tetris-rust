@@ -26,7 +26,6 @@ impl Cell {
                 let reset = "\x1b[0m";
                 //print!("{}[■]{}", color, reset);
                 print!("{}██{}", color, reset);
-                
             }
         }
     }

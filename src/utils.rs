@@ -1,6 +1,5 @@
 use std::io::{self, Write};
 
-
 #[macro_export]
 macro_rules! println_raw {
     ($($arg:tt)*) => {
