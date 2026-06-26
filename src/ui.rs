@@ -21,12 +21,12 @@ pub fn draw_game(game: &Game) {
 
     for y in 0..board_height {
         draw_board_row(y, board_width, game);
-        
+
         // Only draw sidebar if PREVIEW_COUNT > 0
         if crate::game::PREVIEW_COUNT > 0 {
             draw_sidebar_row(y, SIDEBAR_WIDTH, game);
         }
-        
+
         crate::println_raw!("");
     }
 
@@ -45,7 +45,10 @@ fn draw_header(board_width: usize, sidebar_width: usize, preview_count: usize) {
         print!("╗{}", SIDEBAR_GAP);
         print!("╔");
         let next_title = " NEXT ";
-        print!("{next_title}{}", "═".repeat(sidebar_width - next_title.len()));
+        print!(
+            "{next_title}{}",
+            "═".repeat(sidebar_width - next_title.len())
+        );
         crate::println_raw!("╗");
     } else {
         crate::println_raw!("╗");
@@ -56,14 +59,20 @@ fn draw_header(board_width: usize, sidebar_width: usize, preview_count: usize) {
 fn draw_board_row(y: usize, width: usize, game: &Game) {
     print!("║");
     for x in 0..width {
-        if is_active_piece_at(x as i32, y as i32, game) {
+        if game.state == State::Paused {
+            if y == game.board.height as usize / 2 {
+            
+            } else {
+                Cell::Empty.draw();
+            }
+        } else if is_active_piece_at(x as i32, y as i32, game) {
             let p_type = game.current_piece.as_ref().unwrap().t_type;
             Cell::Taken(p_type).draw();
         } else {
             game.playfield_mtrx[y][x].draw();
         }
     }
-    
+
     // print gap iff sidebar exists
     if crate::game::PREVIEW_COUNT > 0 {
         print!("║{}", SIDEBAR_GAP);
@@ -88,7 +97,11 @@ fn draw_sidebar_row(y: usize, width: usize, game: &Game) {
                 ox + PREVIEW_X_OFFSET == local_x as i32 && oy + PREVIEW_Y_OFFSET == local_y
             });
 
-            if is_part { Cell::Taken(t_type).draw(); } else { print!("{}", EMPTY_CELL); }
+            if is_part && game.state != State::Paused {
+                Cell::Taken(t_type).draw();
+            } else {
+                print!("{}", EMPTY_CELL);
+            }
         }
         print!("║");
     } else if y == (previews.len() * ROWS_PER_PREVIEW) {

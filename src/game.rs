@@ -1,6 +1,6 @@
 use crate::bag_system::{BagSystem, GeneratorMode};
 use crate::cell::Cell;
-use crate::tetromino::{Tetromino};
+use crate::tetromino::Tetromino;
 use crate::ui;
 use rand::Rng;
 
@@ -24,6 +24,7 @@ pub enum Actions {
     Down,
     Rotate,
     Quit,
+    Pause,
 }
 
 impl Actions {
@@ -67,7 +68,7 @@ impl Game {
 
         // Initialize the BagSystem
         let mut bag = BagSystem::new(mode, PREVIEW_COUNT);
-        
+
         // Get the first piece
         let first_type = bag.pop_and_refill();
 
@@ -90,7 +91,7 @@ impl Game {
         // Get new piece
         let t_type = self.bag.pop_and_refill();
         let new_piece = Tetromino::new(t_type, self.board.width);
-        
+
         // Check whether its possible to follow the game
         if !self.is_valid_move(&new_piece) {
             self.state = State::GameOver;
@@ -115,12 +116,39 @@ impl Game {
                     self.spawn_piece();
                 }
             }
+            State::Paused => {}
             _ => (),
         }
     }
 
     pub fn is_game_over(&self) -> bool {
         return matches!(self.state, State::GameOver);
+    }
+
+    pub fn handle_action(&mut self, action: Actions) -> bool {
+        match action {
+            Actions::Quit => {
+                return false;
+            }
+            Actions::Pause => {
+                self.toggle_pause();
+            }
+            _ => {
+                // Just let the piece move if its playing
+                if self.state == State::Playing {
+                    self.move_piece(action);
+                }
+            }
+        }
+        true
+    }
+
+    fn toggle_pause(&mut self) {
+        match self.state {
+            State::Playing => self.state = State::Paused,
+            State::Paused => self.state = State::Playing,
+            _ => {}
+        }
     }
 
     // Checks wheter a piece can move
@@ -166,7 +194,7 @@ impl Game {
             Actions::Right => next_piece.x += 1,
             Actions::Down => next_piece.y += 1,
             Actions::Rotate => next_piece.rotate(),
-            _ => (),
+            _ => return, // Ignore other action
         }
 
         if self.is_valid_move(&next_piece) {

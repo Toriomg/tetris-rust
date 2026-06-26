@@ -16,12 +16,11 @@ fn main() {
     let drop_interval = Duration::from_millis(150);
 
     loop {
+        // process input
         if let Some(action) = input::poll_action() {
-            match action {
-                game::Actions::Quit => {
-                    break;
-                }
-                _ => game.move_piece(action),
+            // Close game if handle_actions returns false
+            if !game.handle_action(action) {
+                break;
             }
         }
 
