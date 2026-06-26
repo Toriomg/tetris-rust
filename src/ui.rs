@@ -77,9 +77,10 @@ fn draw_sidebar_row(y: usize, width: usize, game: &Game) {
     let preview_idx = y / ROWS_PER_PREVIEW;
     let local_y = (y % ROWS_PER_PREVIEW) as i32;
 
-    if preview_idx < game.next_pieces.len() {
+    let previews = game.bag.get_preview();
+    if preview_idx < previews.len() {
         print!("║  ");
-        let t_type = game.next_pieces[preview_idx];
+        let t_type = previews[preview_idx];
         let shape = t_type.get_base_shape();
 
         for local_x in 0..PREVIEW_INTERNAL_GRID_WIDTH {
@@ -90,7 +91,7 @@ fn draw_sidebar_row(y: usize, width: usize, game: &Game) {
             if is_part { Cell::Taken(t_type).draw(); } else { print!("{}", EMPTY_CELL); }
         }
         print!("║");
-    } else if y == (game.next_pieces.len() * ROWS_PER_PREVIEW) {
+    } else if y == (previews.len() * ROWS_PER_PREVIEW) {
         print!("╚{}╝", "═".repeat(width));
     } else {
         // Line change: use repeat with width for consistency

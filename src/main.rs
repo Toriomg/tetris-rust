@@ -1,3 +1,4 @@
+mod bag_system;
 mod cell;
 mod game;
 mod input;
@@ -10,7 +11,7 @@ use std::time::{Duration, Instant};
 
 fn main() {
     input::init_terminal();
-    let mut game = Game::new(10, 18);
+    let mut game = Game::new(10, 18, bag_system::GeneratorMode::_Classic);
     let mut last_drop = Instant::now();
     let drop_interval = Duration::from_millis(150);
 

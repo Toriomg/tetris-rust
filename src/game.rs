@@ -1,8 +1,8 @@
+use crate::bag_system::{BagSystem, GeneratorMode};
 use crate::cell::Cell;
-use crate::tetromino::{Tetromino, TypeTetromino};
+use crate::tetromino::{Tetromino};
 use crate::ui;
 use rand::Rng;
-use std::collections::VecDeque;
 
 pub const PREVIEW_COUNT: usize = 3;
 const SCORE_PER_PIECE: u32 = 4;
@@ -58,23 +58,18 @@ pub struct Game {
     pub level: u8,
     pub state: State,
     pub current_piece: Option<Tetromino>,
-    pub next_pieces: VecDeque<TypeTetromino>,
+    pub bag: BagSystem,
 }
 
 impl Game {
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: u32, height: u32, mode: GeneratorMode) -> Self {
         let mtx = vec![vec![Cell::Empty; width as usize]; height as usize];
 
-        // init the new queue
-        let mut next_pieces = VecDeque::new();
-        let following_pieces = if PREVIEW_COUNT == 0 { 1 } else { PREVIEW_COUNT };
-        for _ in 0..following_pieces {
-            next_pieces.push_back(TypeTetromino::random());
-        }
-
-        // the first piece
-        let first_piece_type = next_pieces.pop_front().unwrap();
-        next_pieces.push_back(TypeTetromino::random());
+        // Initialize the BagSystem
+        let mut bag = BagSystem::new(mode, PREVIEW_COUNT);
+        
+        // Get the first piece
+        let first_type = bag.pop_and_refill();
 
         Self {
             board: Playfield { width, height },
@@ -82,8 +77,8 @@ impl Game {
             score: 0,
             level: 9,
             state: State::Playing,
-            current_piece: Some(Tetromino::new(first_piece_type, width)),
-            next_pieces,
+            current_piece: Some(Tetromino::new(first_type, width)),
+            bag,
         }
     }
 
@@ -92,17 +87,15 @@ impl Game {
     }
 
     fn spawn_piece(&mut self) {
-        if let Some(t_type) = self.next_pieces.pop_front() {
-            // Get the new piece
-            self.next_pieces.push_back(TypeTetromino::random());
-            let new_piece = Tetromino::new(t_type, self.board.width);
-
-            // Check if its a valid move
-            if !self.is_valid_move(&new_piece) {
-                self.state = State::GameOver;
-            } else {
-                self.current_piece = Some(new_piece);
-            }
+        // Get new piece
+        let t_type = self.bag.pop_and_refill();
+        let new_piece = Tetromino::new(t_type, self.board.width);
+        
+        // Check whether its possible to follow the game
+        if !self.is_valid_move(&new_piece) {
+            self.state = State::GameOver;
+        } else {
+            self.current_piece = Some(new_piece);
         }
     }
 
